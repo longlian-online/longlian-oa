@@ -1,15 +1,12 @@
-# Elysia with Bun runtime
+# 梦怜龙华协作系统
 
-## Getting Started
-To get started with this template, simply paste this command into your terminal:
-```bash
-bun create elysia ./elysia-example
-```
+## 运行
 
-## Development
-To start the development server run:
-```bash
-bun run dev
-```
+启动调试: `bun run .\src\index.ts`
 
-Open http://localhost:3000/ with your browser to see the result.
+## 技术栈
+
+- bun
+- elysia.js
+- prisma orm
+- keyv 统一缓存操作

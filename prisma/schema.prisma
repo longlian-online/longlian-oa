@@ -1,0 +1,96 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator prismabox { 
+  provider = "prismabox"
+  typeboxImportDependencyName = "elysia"
+  typeboxImportVariableName = "t"
+  inputModel = true
+  output   = "../src/generated/prisma"
+} 
+
+
+model Project {
+  id String @id @default(cuid())
+  group_id String // 所属组ID
+  priority Int // 权重
+}
+model Task {
+  id String @id @default(cuid())
+  group_id String // 所属组ID
+  project_id String // 项目ID
+  priority Int // 权重
+}
+model Step {
+  id String @id @default(cuid())
+  template_step_id String // 模板步骤ID
+  task_id String // 所属任务ID
+  group_id String // 所属组ID
+}
+
+model TaskTemplate {
+  id String @id @default(cuid())
+  name String @unique // 模板名称，也是模板唯一标识
+  desc String // 描述
+  group_id String // 所属组ID
+  template_steps TemplateStep[] // 任务模板步骤列表
+}
+
+
+// 模板步骤
+model TemplateStep {
+  id String @id @default(cuid())
+  group_id String // 所属组ID
+  task_template_id String // 任务模板id
+  predesigned_task_key String // 预定义任务key
+  name String // 步骤名
+  description String // 描述
+  mode TaskTemplateExcutionMode @default(Serial)
+  parent_step_id String? // 父步骤ID，仅在并行模式下存在
+  task_template TaskTemplate @relation(fields:[task_template_id], references:[id])
+  no Int // 编号，在单个任务内递增
+}
+
+// ------------------------------
+//             枚举
+// ------------------------------
+enum TaskTemplateExcutionMode {
+  Serial // 串行
+  Concurrence // 并行
+}
+// 项目分类
+enum ProjectCategory {
+  // 漫画
+  Manga
+  // 小说
+  Novel
+}
+// 项目类型
+enum PeojectType {
+  // 多Task
+  Set
+  // 单Task
+  Single
+}
+// 任务类型
+enum TaskType {
+  Create // 创建
+  Translate // 翻译
+  Check // 校对
+  Inlay // 嵌字
+  Review // 审核
+  Release // 发布
+}
