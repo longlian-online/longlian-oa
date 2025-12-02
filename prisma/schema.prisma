@@ -11,7 +11,6 @@ generator client {
 
 datasource db {
   provider = "sqlite"
-  url      = env("DATABASE_URL")
 }
 
 generator prismabox { 
@@ -19,36 +18,133 @@ generator prismabox {
   typeboxImportDependencyName = "elysia"
   typeboxImportVariableName = "t"
   inputModel = true
-  output   = "../src/generated/prisma"
+  output   = "../src/generated/prismabox"
 } 
 
 
+// ------------------------------
+//             模型
+// ------------------------------
+
+
+// ------------------
+//        用户
+// ------------------
+model User {
+  id String @id @default(cuid())
+  nickname String // 用户自定义昵称
+  username String // 用户名(用户自定义唯一只读标识)
+  password String // 密码
+  email String @default("")
+  avatar_resource_id String // 头像资源ID
+  created_at DateTime @default(now()) // 创建时间
+  passed_at DateTime? // 通过审核时间
+  deleted_at DateTime? // 删除时间
+}
+
+// 组
+model Group {
+  id String @id @default(cuid())
+  avatar_resource_id String // 头像资源ID
+  name String // 组名
+  owner_id String // 组长ID
+}
+
+// 用户组关系表
+model UserGroup {
+  id String @id @default(cuid())
+  group_id String // 所属组ID
+  user_id String // 用户ID
+  role GroupRole // 身份
+}
+
+// 岗位表
+model Position {
+  id String @id @default(cuid())
+  group_id String // 所属组ID
+  label String // 岗位名
+  description String // 描述
+}
+
+// 用户岗位表
+model UserPosition {
+  id String @id @default(cuid())
+  group_id String // 所属组ID
+  user_id String // 用户ID
+  position_id String // 岗位ID
+}
+
+// ------------------
+//        业务
+// ------------------
+
+// 项目
 model Project {
   id String @id @default(cuid())
   group_id String // 所属组ID
-  priority Int // 权重
+  priority Int // 权重 默认为项目序号*10
+  title String // 标题
+  description String @default("") // 简介
+  author String @default("") // 作者
+  director_id String // 负责人ID
+  created_at DateTime @default(now()) // 创建时间
+  passed_at DateTime? // 通过审核时间
+  deleted_at DateTime? // 删除时间
+
+  @@index([priority])
 }
+// 任务
 model Task {
   id String @id @default(cuid())
   group_id String // 所属组ID
   project_id String // 项目ID
-  priority Int // 权重
+  priority Int // 权重 默认为任务序号*10
+  created_at DateTime @default(now())
+
+  @@index([priority])
 }
+// 步骤
 model Step {
   id String @id @default(cuid())
   template_step_id String // 模板步骤ID
   task_id String // 所属任务ID
   group_id String // 所属组ID
+  director_id String? // 负责人ID
+  created_at DateTime @default(now())
+}
+// 操作日志
+model ClientActionLog {
+  id String @id @default(cuid())
+  action Int // 动作
+  created_at DateTime @default(now())
+  request_params Json // 请求参数
+  user_id String // 用户id
 }
 
+// 用户推荐项目
+model UserRecommendProject {
+  created_at DateTime @default(now())
+  id String @id @default(cuid())
+  title String // 标题
+  description String @default("") // 简介
+  author String @default("") // 作者
+  instantiated_at DateTime?  // 实例化时间
+  instance_project_id String? // 实例化项目ID
+}
+
+// ------------------
+//     任务流模板
+// ------------------
+
+// 任务模板
 model TaskTemplate {
   id String @id @default(cuid())
   name String @unique // 模板名称，也是模板唯一标识
   desc String // 描述
   group_id String // 所属组ID
   template_steps TemplateStep[] // 任务模板步骤列表
+  created_at DateTime @default(now())
 }
-
 
 // 模板步骤
 model TemplateStep {
@@ -56,12 +152,38 @@ model TemplateStep {
   group_id String // 所属组ID
   task_template_id String // 任务模板id
   predesigned_task_key String // 预定义任务key
-  name String // 步骤名
-  description String // 描述
-  mode TaskTemplateExcutionMode @default(Serial)
+  mode TaskTemplateExcutionMode @default(Serial) // 流程模式
   parent_step_id String? // 父步骤ID，仅在并行模式下存在
   task_template TaskTemplate @relation(fields:[task_template_id], references:[id])
   no Int // 编号，在单个任务内递增
+  created_at DateTime @default(now())
+}
+
+// ------------------
+//       标签
+// ------------------
+model Tag {
+  id String @id @default(cuid())
+  group_id String // 所属组ID
+  label String // 标签
+  type TagType // 标签类型
+  created_at DateTime
+}
+
+model TagRelate {
+  id String @id @default(cuid())
+  tag_id String // 标签ID
+  related_id String // 关联对象ID
+}
+
+// ------------------
+//       资源
+// ------------------
+model Resource {
+  id String @id @default(cuid())
+  bucket String
+  region String
+  key String
 }
 
 // ------------------------------
@@ -79,18 +201,33 @@ enum ProjectCategory {
   Novel
 }
 // 项目类型
-enum PeojectType {
+enum ProjectType {
   // 多Task
   Set
   // 单Task
   Single
 }
-// 任务类型
-enum TaskType {
-  Create // 创建
-  Translate // 翻译
-  Check // 校对
-  Inlay // 嵌字
-  Review // 审核
-  Release // 发布
+enum TagType {
+  // 任务模板tag
+  TaskTemplate
+  // 项目tag
+  Project
+}
+enum ResourceType {
+  // 头像
+  Avatar
+  // 项目封面
+  Cover
+  // 步骤提交内容
+  StepContent
+}
+enum GroupRole {
+  // 游客
+  Guest
+  // 组员
+  Member
+  // 管理员
+  Admin
+  // 组长
+  Owner
 }
